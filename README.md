@@ -4,4 +4,4 @@
 - [x] Import the texture data from PNG
 - [] Experiment with nearest neighbour to deal with difference in resolutions
 - [x] Produce a delta image
-- [] Save the result, the delta image and the compared images in a folder
+- [x] Save the result, the delta image and the compared images in a folder

@@ -1,8 +1,3 @@
-// ImageComparison.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-#include "lodepng.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdexcept>
@@ -11,6 +6,8 @@
 #include <iomanip>
 #include <filesystem>
 #include <fstream>
+
+#include "ImageUtils.h"
 
 /// <summary>
 /// Compares 2 vectors of equal size and assumes each pixel is 4 bytes large ordered by RGBA
@@ -21,8 +18,8 @@
 /// <returns>Value from 0-1 where 1 is most similar and 0 is not similar</returns>
 float compare(std::vector<unsigned char> &image, std::vector<unsigned char>& image2) {
     if (image.size() != image2.size()) {
-        std::cout << "Images must be same size" << std::endl;;
-        return 0;
+        std::cout << "Images must be same size" << std::endl;
+        return -1;
     }
 
     const float color_count = 255;
@@ -43,9 +40,16 @@ float compare(std::vector<unsigned char> &image, std::vector<unsigned char>& ima
     return similarity_sum;
 }
 
+/// <summary>
+/// If both images are the same size, fills the delta texture with the delta of all the pixels
+/// </summary>
+/// <param name="image"></param>
+/// <param name="image2"></param>
+/// <param name="delta"></param>
+/// <returns></returns>
 bool tryCreateDeltaImage(std::vector<unsigned char>& image, std::vector<unsigned char>& image2, std::vector<unsigned char>& delta) {
     if (image.size() != image2.size()) {
-        std::cout << "Images must be same size" << std::endl;;
+        std::cout << "Images must be same size" << std::endl;
         return false;
     }
 
@@ -60,31 +64,6 @@ bool tryCreateDeltaImage(std::vector<unsigned char>& image, std::vector<unsigned
     return true;
 }
 
-bool tryDecodeImage(const char* filename, std::vector<unsigned char>& image, unsigned int& width, unsigned int& height) {
-    unsigned error;
-
-    error = lodepng::decode(image, width, height, filename);
-    if (error) {
-        printf("error %u: %s\n", error, lodepng_error_text(error));
-        return false;
-    }
-
-    return true;
-}
-
-bool tryEncodeImage(const std::string filename, std::vector<unsigned char>& image, unsigned width, unsigned height) {
-    //Encode the image
-    unsigned error = lodepng::encode(filename, image, width, height);
-
-    //if there's an error, display it
-    if (error) {
-        std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-        return false;
-    }
-
-    return true;
-}
-
 void copyFile(std::filesystem::path from, std::filesystem::path to) {
     try {
         std::filesystem::copy(from, to);
@@ -94,21 +73,23 @@ void copyFile(std::filesystem::path from, std::filesystem::path to) {
     }
 }
 
-void writeResults() {
-
-}
-
 int main(int argc, char* argv[])
 {
-    // -- Load the 2 texture arrays --
-    const char* filename = argc > 1 ? argv[1] : "image1.png";
+    if (argc < 3) {
+        std::cout << "Specify paths to 2 png images. Example: ImageComparsion.exe image1.png image2.png";
+        return 1;
+    }
+
+    // -- Load the files --
+    const char* filename = argv[1];
     std::vector<unsigned char> image1;
     unsigned int width, height;
     if (!tryDecodeImage(filename, image1, width, height)) {
         std::cout << "Decoding image1 failed" << std::endl;
         return 1;
     }
-    const char* filename2 = argc > 1 ? argv[1] : "image2.png";
+
+    const char* filename2 = argv[2];
     std::vector<unsigned char> image2;
     unsigned int width2, height2;
     if (!tryDecodeImage(filename2, image2, width2, height2)) {
@@ -118,6 +99,10 @@ int main(int argc, char* argv[])
 
     // -- Compare the textures --
     float similarity_factor = compare(image1, image2);
+    if (similarity_factor < 0) {
+        std::cout << "Comparing images failed" << std::endl;
+        return 1;
+    }
     std::cout << "Images are a factor of " << similarity_factor << " similar" << std::endl;
 
     // -- Produce a image that contains the differences --
@@ -137,6 +122,11 @@ int main(int argc, char* argv[])
             std::cout << "Creation of results folder failed" << std::endl;
             return 1;
         }
+    }
+
+    // -- Make sure the directory is empty --
+    for (const auto& entry : std::filesystem::directory_iterator(resultsPath)) {
+        std::filesystem::remove_all(entry.path());
     }
 
     resultsPath /= "delta.png";
