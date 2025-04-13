@@ -52,13 +52,15 @@ bool tryCreateDeltaImage(std::vector<unsigned char>& image, std::vector<unsigned
         std::cout << "Images must be same size" << std::endl;
         return false;
     }
+    
 
     for (size_t i = 0; i < image.size(); i++)
     {
-        delta[i] = std::abs(image[i] - image2[i]);
-        if (i % 3 == 0) {
-            delta[i] = 255;
+        int deltaColor = std::abs(image[i] - image2[i]);
+        if ((i + 1) % 4 == 0) {
+            deltaColor = 255;
         }
+        delta[i] = deltaColor;
     }
 
     return true;
@@ -136,11 +138,11 @@ int main(int argc, char* argv[])
     }
 
     std::filesystem::path inputsPath = std::filesystem::current_path();
-    resultsPath = resultsPath.replace_filename(filename);
+    resultsPath = resultsPath.replace_filename("a.png");
     inputsPath /= filename;
     copyFile(inputsPath, resultsPath);
 
-    resultsPath = resultsPath.replace_filename(filename2);
+    resultsPath = resultsPath.replace_filename("b.png");
     inputsPath = inputsPath.replace_filename(filename2);
     copyFile(inputsPath, resultsPath);
 
