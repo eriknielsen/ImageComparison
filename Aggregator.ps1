@@ -4,12 +4,14 @@ param(
     [Parameter(Mandatory=$true)] [float]$MinimumSimilarity
 )
 
-# Get absolute path to comparer
+# Get absolute path to comparer and output folder
 $pathToImageComparer = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "ImageComparison.exe"
+$pathToOutput = Resolve-Path $OutputFolder
 
 # Clear out the output folder
 Remove-Item -Recurse -Force $OutputFolder 
 
+# For each folder in the input, assume there's 2 images to compare 
 $inputFolders = Get-ChildItem -Path $InputFolder -Directory
 foreach ($folder in $inputFolders) {
     Write-Host "Processing folder: $($folder.FullName)"
@@ -21,7 +23,8 @@ foreach ($folder in $inputFolders) {
         # If input is too different (graphical artifacts have been introduced)
         # copy the input to the output for further processing
         if ($similarity -lt $MinimumSimilarity) {
-            Copy-Item -Recurse "results\\" (Join-Path $OutputFolder $folder.Name)
+            Write-Host "$($folder.FullName) is too different"
+            Copy-Item -Recurse "results\\" (Join-Path $pathToOutput $folder.Name)
         }
 
     }
