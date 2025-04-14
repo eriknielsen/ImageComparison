@@ -18,7 +18,7 @@
 /// <returns>Value from 0-1 where 1 is most similar and 0 is not similar</returns>
 float compare(std::vector<unsigned char> &image, std::vector<unsigned char>& image2) {
     if (image.size() != image2.size()) {
-        std::cout << "Images must be same size" << std::endl;
+        std::cerr << "Images must be same size" << std::endl;
         return -1;
     }
 
@@ -49,7 +49,7 @@ float compare(std::vector<unsigned char> &image, std::vector<unsigned char>& ima
 /// <returns></returns>
 bool tryCreateDeltaImage(std::vector<unsigned char>& image, std::vector<unsigned char>& image2, std::vector<unsigned char>& delta) {
     if (image.size() != image2.size()) {
-        std::cout << "Images must be same size" << std::endl;
+        std::cerr << "Images must be same size" << std::endl;
         return false;
     }
     
@@ -71,14 +71,14 @@ void copyFile(std::filesystem::path from, std::filesystem::path to) {
         std::filesystem::copy(from, to);
     }
     catch (const std::exception& e) {
-        std::cout << "Exception " << e.what() << std::endl;
+        std::cerr << "Exception " << e.what() << std::endl;
     }
 }
 
 int main(int argc, char* argv[])
 {
-    if (argc < 3) {
-        std::cout << "Specify paths to 2 png images. Example: ImageComparsion.exe image1.png image2.png";
+    if (argc < 4) {
+        std::cerr << "Specify paths to 2 png images and a folder to put the results. Example: ImageComparsion.exe image1.png image2.png results";
         return 1;
     }
 
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     std::vector<unsigned char> image1;
     unsigned int width, height;
     if (!tryDecodeImage(filename, image1, width, height)) {
-        std::cout << "Decoding image1 failed" << std::endl;
+        std::cerr << "Decoding image1 failed" << std::endl;
         return 1;
     }
 
@@ -95,33 +95,33 @@ int main(int argc, char* argv[])
     std::vector<unsigned char> image2;
     unsigned int width2, height2;
     if (!tryDecodeImage(filename2, image2, width2, height2)) {
-        std::cout << "Decoding image2 failed" << std::endl;
+        std::cerr << "Decoding image2 failed" << std::endl;
         return 1;
     }
+
+    const char* resultsFolder = argv[3];
 
     // -- Compare the textures --
     float similarity_factor = compare(image1, image2);
     if (similarity_factor < 0) {
-        std::cout << "Comparing images failed" << std::endl;
+        std::cerr << "Comparing images failed" << std::endl;
         return 1;
     }
-    std::cout << "Images are a factor of " << similarity_factor << " similar" << std::endl;
+    std::cout << similarity_factor << std::endl;
 
     // -- Produce a image that contains the differences --
     std::vector<unsigned char> deltaImage(image1.size());
     if (!tryCreateDeltaImage(image1, image2, deltaImage)) {
-        std::cout << "Creation of delta image failed" << std::endl;
+        std::cerr << "Creation of delta image failed" << std::endl;
         return 1;
     }
 
-    std::cout << "Comparison and encoding complete" << std::endl;
-
     // -- Save the calculated result, delta image and inputs to a folder --
     std::filesystem::path resultsPath = std::filesystem::current_path();
-    resultsPath /= "results";
+    resultsPath /= resultsFolder;
     if(!std::filesystem::exists(resultsPath)) {
         if (!std::filesystem::create_directory(resultsPath)) {
-            std::cout << "Creation of results folder failed" << std::endl;
+            std::cerr << "Creation of results folder failed" << std::endl;
             return 1;
         }
     }
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 
     resultsPath /= "delta.png";
     if (!tryEncodeImage(resultsPath.string(), deltaImage, width, height)) {
-        std::cout << "Encoding deltaImage failed" << std::endl;
+        std::cerr << "Encoding deltaImage failed" << std::endl;
         return 1;
     }
 
